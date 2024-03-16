@@ -1,3 +1,7 @@
+# Requirements:
+# OpenAI API key at OPENAI_API_KEY
+# Polygonscan API key at POLYGON_API_KEY
+
 from openai import OpenAI
 import requests
 from pathlib import Path
@@ -101,7 +105,7 @@ class NelsonBot:
                 ) 
             elif run_status.status in ['queued', 'in_progress']:
                 print("Still waiting for run to finish")
-                time.sleep(1)
+                time.sleep(2)
             else:
                 print(f"Run status: {run_status.status}")
                 break
