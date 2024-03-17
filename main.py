@@ -26,7 +26,7 @@ class NelsonBot:
 
     def __init__(self):
         self.data = []
-        self.input_address() # kick off in the constructor
+        self.input_type() # kick off in the constructor
 
     def input_address(self):
         print("===What address do you want more information about [blank for default]?===")
@@ -35,17 +35,22 @@ class NelsonBot:
         self.init_wallet_thread(input_string) # create thread based on wallet
         self.input_query()
 
-    def init_wallet_thread(self, type, address):
+    def init_wallet_thread(self, address):
         # requests for etherscan
         initial_address=address
         if not address:
             address = self.address
 
+        print("Using address",address)
+
         # requests for etherscan, will use default address if falsey
-        if type==1:
+        if self.network_type==1:
             self.get_polygonscan(address)
-        elif type==2:
+        elif self.network_type==2:
             self.get_optimismscan(address)
+        else:
+            print("Invalid network",self.network_type)
+            return
 
         # re-use thread if thread default exists and using default wallet
         if self.wallet_thread_id and not initial_address and type==1:
@@ -58,7 +63,9 @@ class NelsonBot:
         # associate wallet context with initial question to thread via message
         print("Bot processing transactions")
         transactions_text = repr(self.wallet_transactions)
-        message=client.beta.threads.messages.create(thread_id=self.wallet_thread_id,role="user",content="These are recent transaction data related to the specific blockchain wallet in question. Begin blockchain transactions. "+ transactions_text +" End blockchain transactions. Give me brief summary of recent transactions.")
+        limited_transactions_text=transactions_text[:30000]
+        # print(transactions_text)
+        message=client.beta.threads.messages.create(thread_id=self.wallet_thread_id,role="user",content="These are recent transaction data related to the specific blockchain wallet in question. Begin blockchain transactions. "+ limited_transactions_text +" End blockchain transactions. Give me brief summary of recent transactions.")
         client.beta.threads.runs.create(assistant_id=self.assistant_id,thread_id=thread.id)
 
         return self.wallet_transactions
@@ -69,6 +76,7 @@ class NelsonBot:
         r = requests.get(polygonscan_url)
         result_obj=r.json()
         self.wallet_transactions=result_obj["result"]
+        # import pdb; pdb.set_trace()
 
         return self.wallet_transactions
 
@@ -81,6 +89,18 @@ class NelsonBot:
 
         return self.wallet_transactions
 
+    def input_type(self):
+        print("===What network do you want to use?===")
+        print("1) polygon")
+        print("2) optimism")
+        input_string=input()
+
+        # save network type
+        self.network_type=int(input_string)
+        # print("Setting network to",self.network_type)
+
+        # go back to main menu
+        self.input_address()
 
     def input_query(self):
         print("===What do you want to ask wallet bot?===")
