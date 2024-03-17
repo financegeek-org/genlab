@@ -1,6 +1,7 @@
 # Requirements:
 # OpenAI API key at OPENAI_API_KEY
 # Polygonscan API key at POLYGON_API_KEY
+# Optimism API key at OPTIMISM_API_KEY
 
 from openai import OpenAI
 import requests
@@ -34,13 +35,20 @@ class NelsonBot:
         self.init_wallet_thread(input_string) # create thread based on wallet
         self.input_query()
 
-    def init_wallet_thread(self, address):
+    def init_wallet_thread(self, type, address):
+        # requests for etherscan
         initial_address=address
+        if not address:
+            address = self.address
+
         # requests for etherscan, will use default address if falsey
-        self.get_polygonscan(address)
+        if type==1:
+            self.get_polygonscan(address)
+        elif type==2:
+            self.get_optimismscan(address)
 
         # re-use thread if thread default exists and using default wallet
-        if self.wallet_thread_id and not initial_address:
+        if self.wallet_thread_id and not initial_address and type==1:
             print("Reusing thread ",self.wallet_thread_id)
         else:
             self.wallet_thread = thread = client.beta.threads.create()
@@ -56,10 +64,6 @@ class NelsonBot:
         return self.wallet_transactions
 
     def get_polygonscan(self, address):
-        # requests for etherscan
-        if not address:
-            address = self.address
-
         # get wallet transactions
         polygonscan_url = "https://api.polygonscan.com/api?module=account&action=txlist&address="+address+"&startblock=0&endblock=99999999&page=1&offset=1000&sort=asc&apikey="+os.environ.get("POLYGON_API_KEY")
         r = requests.get(polygonscan_url)
@@ -67,6 +71,16 @@ class NelsonBot:
         self.wallet_transactions=result_obj["result"]
 
         return self.wallet_transactions
+
+    def get_optimismscan(self, address):
+        # get wallet transactions
+        optscan_url = "https://api-optimistic.etherscan.io/api?module=account&action=txlist&address="+address+"&startblock=0&endblock=99999999&page=1&offset=1000&sort=asc&apikey="+os.environ.get("OPTIMISM_API_KEY")
+        r = requests.get(optscan_url)
+        result_obj=r.json()
+        self.wallet_transactions=result_obj["result"]
+
+        return self.wallet_transactions
+
 
     def input_query(self):
         print("===What do you want to ask wallet bot?===")
